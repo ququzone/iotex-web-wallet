@@ -21,7 +21,7 @@ export default function CreateBucket(props: CreateBucket){
         candidateName: "unifi",
         stakedAmount: "200000000000000000000",
         stakedDuration: 0,
-        autoStake: false,
+        autoStake: true,
         payload: ""
       },
       {signer: props.iotex.signer}
