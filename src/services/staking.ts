@@ -1,5 +1,5 @@
 import { Account } from "iotex-antenna/lib/account/account";
-import { StakeAddDepositMethod } from "iotex-antenna/lib/action/method";
+import { StakeAddDepositMethod, StakeRestakeMethod } from "iotex-antenna/lib/action/method";
 import { Iotx } from "iotex-antenna/lib/iotx";
 import { 
   IReadStakingDataMethodName,
@@ -113,6 +113,24 @@ export class Staking {
         bucketIndex: index,
         amount: amount,
         payload: "",
+      },
+      { signer: this.provider.signer }
+    ).execute();
+  }
+
+  public async restake(index: number, duration: number, autoStake: boolean): Promise<string> {
+    const account = new Account();
+    account.address = this.account;
+    return new StakeRestakeMethod(
+      this.provider,
+      account,
+      {
+        gasLimit: "10000",
+        gasPrice: "1000000000000",
+        bucketIndex: index,
+        stakedDuration: duration,
+        autoStake: autoStake,
+        payload: ""
       },
       { signer: this.provider.signer }
     ).execute();
