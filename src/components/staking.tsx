@@ -1,11 +1,10 @@
-import { Button } from "@nextui-org/react";
+import { Button, Text, Modal, Checkbox, Spacer, Radio } from "@nextui-org/react";
 import { Iotx } from "iotex-antenna/lib/iotx";
 import { fromRau } from "iotex-antenna/lib/account/utils";
-import React from "react";
+import React, { useState } from "react";
 
 import IoTeXApp from "../ledger/iotex";
 import BucketList from "./bucket-list";
-import { LedgerPlugin } from "../ledger/plugin";
 import { createTransport } from "../ledger/transport";
 import ContractTriger from "./contract";
 import ClaimRewards from "./claim-rewards";
@@ -14,6 +13,7 @@ import SignMessage from "./sign-message";
 import { WsSignerPlugin } from "../ledger/ws";
 import TransferTriger from "./transfer";
 import CreateBucket from "./create-bucket";
+import { LedgerPlugin } from "../ledger/plugin";
 
 interface StakingProps {
 }
@@ -22,7 +22,91 @@ interface StakingState {
   ledger: IoTeXApp | null,
   iotex: Iotx | null,
   balance: string,
-  address: string,
+  address: string
+}
+
+// @ts-ignore
+const ConnectLedgerButton = (props) => {
+  const [selectAddressVisible, setSelectAddressVisible] = useState(false);
+  const [paths, setPaths] = useState([]);
+
+  const [app, setApp] = useState(null);
+  const [checkedAddress, setCheckedAddress] = React.useState("");
+
+  const closeSelectAddress = () => setSelectAddressVisible(false);
+  const selectedAddress = async () => {
+    try {
+      // @ts-ignore
+      const plugin = new LedgerPlugin(app);
+      await plugin.select(checkedAddress);
+      const iotx = new Iotx("https://api.mainnet.iotex.one:443", 1, {
+        signer: plugin,
+      });
+      const addresses = await plugin.getAccounts();
+      const account = await iotx.getAccount({address: addresses[0].address});
+
+      props.setLedgerState({
+        ledger: app,
+        iotex: iotx,
+        address: addresses[0].address,
+        balance: fromRau(account.accountMeta!.balance, "IOTX"),
+      });
+      setSelectAddressVisible(false);
+    } catch (error) {
+      // 0x6b0c unlock ledger
+      // 0x6e01 open app
+      console.error(`connect ledger error: ${error}`);
+    }
+  };
+
+  const connectLedger = async () => {
+    // TODO need disconnect then export `transport` to state
+    const transport = await createTransport();
+    const app = new IoTeXApp(transport);
+    const paths = [];
+    for (let i = 0; i < 10; i++) {
+      const path = "44'/304'/0'/0/" + i;
+      const address = await app.getAddress(path);
+      paths.push({path: path, address: address.address});
+    }
+    // @ts-ignore
+    setPaths(paths);
+    // @ts-ignore
+    setApp(app);
+    setSelectAddressVisible(true);
+  }
+
+  return (
+    <div>
+      <Modal
+        closeButton
+        aria-labelledby="modal-title"
+        width="555px"
+        open={selectAddressVisible}
+        onClose={closeSelectAddress}
+      >
+        <Modal.Header>
+          <Text id="modal-title" size={18}>
+            Select address
+          </Text>
+        </Modal.Header>
+        <Modal.Body>
+          <Radio.Group value={checkedAddress} onChange={setCheckedAddress}>
+            {paths.map((path: {path: string, address: string}) => <Radio value={path.path}>{path.address}</Radio>)}
+          </Radio.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button auto flat color="error" onClick={closeSelectAddress}>
+            Close
+          </Button>
+          <Button auto onClick={selectedAddress}>
+            Confirm
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      <Button onPress={connectLedger}>Connect with ledger</Button>
+    </div>
+  )
 }
 
 export default class Staking extends React.Component<StakingProps, StakingState> {
@@ -34,6 +118,11 @@ export default class Staking extends React.Component<StakingProps, StakingState>
       balance: "",
       address: "",
     }
+  }
+
+  // @ts-ignore
+  setLedgerState = (state) => {
+    this.setState(state);
   }
 
   connectIoPay = async () => {
@@ -55,34 +144,6 @@ export default class Staking extends React.Component<StakingProps, StakingState>
     }
   }
 
-  connectLedger = async () => {
-    // TODO need disconnect then export `transport` to state
-    const transport = await createTransport();
-    const app = new IoTeXApp(transport);
-    this.setState({
-      ledger: app,
-    });
-    try {
-      const plugin = new LedgerPlugin(app);
-      await plugin.init();
-      const iotx = new Iotx("https://api.mainnet.iotex.one:443", 1, {
-        signer: plugin,
-      });
-      const addresses = await plugin.getAccounts();
-      const account = await iotx.getAccount({address: addresses[0].address});
-
-      this.setState({
-        iotex: iotx,
-        address: addresses[0].address,
-        balance: fromRau(account.accountMeta!.balance, "IOTX"),
-      });
-    } catch (error) {
-      // 0x6b0c unlock ledger
-      // 0x6e01 open app
-      console.error(`connect ledger error: ${error}`);
-    }
-  }
-
   render() {
     if (this.state.address !== "") {
       return (
@@ -100,7 +161,7 @@ export default class Staking extends React.Component<StakingProps, StakingState>
     } else {
       return (
         <div>
-          <Button onPress={this.connectLedger}>Connect with ledger</Button>
+          <ConnectLedgerButton setLedgerState={this.setLedgerState} />
           <br />
           <Button onPress={this.connectIoPay}>Connect with ioPay</Button>
         </div>

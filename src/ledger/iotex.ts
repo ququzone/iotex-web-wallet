@@ -62,6 +62,7 @@ export default class IoTeXApp {
     returnCode: number;
     publicKey: string;
     address: string;
+    path: string;
   }> {
     return this.transport
       .send(
@@ -80,6 +81,7 @@ export default class IoTeXApp {
           returnCode,
           publicKey: publicKey,
           address: publicKeyToAddress(publicKey),
+          path: path,
         };
       });
   }

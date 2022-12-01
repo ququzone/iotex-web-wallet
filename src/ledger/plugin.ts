@@ -6,16 +6,16 @@ import IoTeXApp from "./iotex";
 export class LedgerPlugin implements SignerPlugin {
     public ledger: IoTeXApp;
     public initialed: boolean;
-    private address: { returnCode: number; publicKey: string; address: string; } | undefined;
+    private address: { returnCode: number; publicKey: string; address: string; path: string; } | undefined;
 
     constructor(ledger: IoTeXApp) {
         this.ledger = ledger;
         this.initialed = false;
     }
 
-    public async init() {
+    public async select(path: string) {
         if (!this.initialed) {
-            const address = await this.ledger.getAddress("44'/304'/0'/0/0");
+            const address = await this.ledger.getAddress(path);
             if (address.returnCode != 0x9000) {
                 throw new Error(`fetch address error ${address}`);
             }
@@ -38,7 +38,7 @@ export class LedgerPlugin implements SignerPlugin {
         if (!this.initialed) {
             throw new Error("plugin not initial");
         }
-        const signed = await this.ledger.signTransaction("44'/304'/0'/0/0", Buffer.from(envelop.bytestream()));
+        const signed = await this.ledger.signTransaction(this.address!.path, Buffer.from(envelop.bytestream()));
         if (signed.code !== 36864) {
             throw new Error(signed.message || "ledger error");
         }

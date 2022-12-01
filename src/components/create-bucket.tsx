@@ -1,7 +1,6 @@
 import { Button } from "@nextui-org/react";
 import { StakeCreateMethod } from "iotex-antenna/lib/action/method";
 import { Iotx } from "iotex-antenna/lib/iotx";
-import { StakeCreate } from "iotex-antenna/protogen/proto/types/action_pb";
 
 interface CreateBucket {
   sender: string,
@@ -10,7 +9,6 @@ interface CreateBucket {
 
 export default function CreateBucket(props: CreateBucket){
   const create = async () => {
-    console.log(props.sender);
     const method = new StakeCreateMethod(
       props.iotex,
       // @ts-ignore
